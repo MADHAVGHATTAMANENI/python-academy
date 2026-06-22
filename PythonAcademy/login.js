@@ -78,25 +78,35 @@ btnToggleMode.addEventListener('click', () => {
 });
 
 // Google Sign-In
-btnGoogle.addEventListener('click', async () => {
+btnGoogle.addEventListener('click', () => {
     clearMessages();
-    try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        // Use redirect instead of popup to prevent Safari from automatically closing it
-        await auth.signInWithRedirect(provider);
-    } catch (error) {
-        showError(error.message);
-    }
-});
-
-// Check for redirect result on page load (for Google Sign-In)
-auth.getRedirectResult().then((result) => {
-    if (result.credential) {
-        // Successful login
-        window.location.href = 'index.html';
-    }
-}).catch((error) => {
-    showError(error.message);
+    
+    // Set loading state
+    const originalContent = btnGoogle.innerHTML;
+    btnGoogle.disabled = true;
+    btnGoogle.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Opening Google...';
+    
+    const provider = new firebase.auth.GoogleAuthProvider();
+    
+    // We MUST use signInWithPopup because Safari blocks cross-domain signInWithRedirect 
+    // due to Intelligent Tracking Prevention (ITP).
+    auth.signInWithPopup(provider)
+        .then((result) => {
+            window.location.href = 'index.html';
+        })
+        .catch((error) => {
+            btnGoogle.disabled = false;
+            btnGoogle.innerHTML = originalContent;
+            
+            // Handle common popup errors gracefully
+            if (error.code === 'auth/popup-closed-by-user') {
+                showError('The Google sign-in window was closed. Please click the button to try again.');
+            } else if (error.code === 'auth/popup-blocked') {
+                showError('Your browser blocked the Google sign-in popup. Please allow popups for this site and try again.');
+            } else {
+                showError(error.message);
+            }
+        });
 });
 
 // Email/Password Submit
