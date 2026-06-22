@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Academy - Learn Python from Scratch to DSA</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-fontawesome/6.4.0/css/all.min.css">
+    <!-- Confetti for success celebration -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Pyodide for client-side Python execution -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+    <!-- Main Style -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-logo">
+                <i class="fa-brands fa-python python-logo"></i>
+                <div class="logo-text">
+                    <h1>Python Academy</h1>
+                    <span>Zero to DSA Pro</span>
+                </div>
+            </div>
+            
+            <div class="header-status">
+                <div id="pyodide-status" class="status-badge loading">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                    <span>Initializing Python...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT -->
+        <div class="main-layout">
+            <!-- SIDEBAR Navigation -->
+            <aside class="sidebar">
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <span class="progress-label">Course Progress</span>
+                        <span id="progress-percent" class="progress-value">0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div id="progress-fill" class="progress-fill" style="width: 0%;"></div>
+                    </div>
+                    <div class="progress-stats">
+                        <span id="progress-completed-count">0/24 Lessons</span>
+                    </div>
+                </div>
+
+                <nav class="curriculum-nav" id="curriculum-menu">
+                    <!-- Dynamic Modules & Lessons will be rendered here -->
+                    <div class="nav-loading">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Loading curriculum...
+                    </div>
+                </nav>
+
+                <div class="sidebar-footer">
+                    <button id="btn-reset-progress" class="btn-secondary btn-small">
+                        <i class="fa-solid fa-rotate-left"></i> Reset All Progress
+                    </button>
+                </div>
+            </aside>
+
+            <!-- MAIN WORKSPACE -->
+            <main class="workspace">
+                <!-- LESSON CONTENT AREA -->
+                <section class="workspace-pane lesson-pane">
+                    <div id="lesson-card" class="lesson-card">
+                        <!-- Navigation Header -->
+                        <div class="lesson-nav-header">
+                            <span id="lesson-module-tag" class="module-tag">Module 1</span>
+                            <span id="lesson-index-tag" class="lesson-tag">Lesson 1.1</span>
+                        </div>
+
+                        <!-- Lesson Title -->
+                        <h2 id="lesson-title" class="lesson-title">Loading Lesson...</h2>
+
+                        <!-- Lesson Tabs -->
+                        <div class="tab-container">
+                            <button class="tab-btn active" data-tab="tab-learn">
+                                <i class="fa-solid fa-book-open"></i> Learn
+                            </button>
+                            <button class="tab-btn" data-tab="tab-quiz">
+                                <i class="fa-solid fa-clipboard-question"></i> Quiz
+                                <span id="quiz-badge" class="badge dot" style="display: none;"></span>
+                            </button>
+                            <button class="tab-btn" data-tab="tab-exercise">
+                                <i class="fa-solid fa-laptop-code"></i> Challenge
+                                <span id="exercise-badge" class="badge dot" style="display: none;"></span>
+                            </button>
+                        </div>
+
+                        <!-- Tab Content: Learn -->
+                        <div id="tab-learn" class="tab-content active">
+                            <div id="lesson-content-body" class="lesson-content-body">
+                                <!-- Dynamic explanation content -->
+                            </div>
+                            
+                            <div class="sample-code-container">
+                                <h3><i class="fa-solid fa-code"></i> Example Code</h3>
+                                <pre><code id="lesson-sample-code"># Sample code will appear here</code></pre>
+                                <button id="btn-copy-sample" class="btn-copy" title="Copy code">
+                                    <i class="fa-regular fa-copy"></i> Copy to Editor
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tab Content: Quiz -->
+                        <div id="tab-quiz" class="tab-content">
+                            <div class="quiz-container">
+                                <div id="quiz-questions-list">
+                                    <!-- Dynamic quiz questions -->
+                                </div>
+                                <button id="btn-submit-quiz" class="btn-primary btn-full">
+                                    Submit Quiz Answers
+                                </button>
+                                <div id="quiz-feedback" class="feedback-box" style="display: none;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tab Content: Exercise -->
+                        <div id="tab-exercise" class="tab-content">
+                            <div class="exercise-container">
+                                <div class="exercise-instruction-box">
+                                    <h3><i class="fa-solid fa-bullseye"></i> Objective</h3>
+                                    <div id="exercise-instructions">
+                                        <!-- Dynamic exercise instructions -->
+                                    </div>
+                                </div>
+
+                                <div class="hints-accordion">
+                                    <div class="accordion-header" id="hint-toggle">
+                                        <span><i class="fa-regular fa-lightbulb"></i> Need a Hint?</span>
+                                        <i class="fa-solid fa-chevron-down"></i>
+                                    </div>
+                                    <div class="accordion-content" id="hint-content">
+                                        <p id="lesson-hint">Select a lesson to see hints.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Navigation Buttons -->
+                        <div class="lesson-navigation">
+                            <button id="btn-prev-lesson" class="btn-secondary" disabled>
+                                <i class="fa-solid fa-arrow-left"></i> Previous
+                            </button>
+                            <button id="btn-next-lesson" class="btn-primary" disabled>
+                                Next Lesson <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- INTERACTIVE PLAYGROUND AREA -->
+                <section class="workspace-pane playground-pane">
+                    <!-- EDITOR PANEL -->
+                    <div class="editor-window card">
+                        <div class="window-header">
+                            <div class="window-controls">
+                                <span class="dot red"></span>
+                                <span class="dot yellow"></span>
+                                <span class="dot green"></span>
+                            </div>
+                            <div class="window-title">
+                                <i class="fa-brands fa-python"></i> playground.py
+                            </div>
+                            <div class="window-actions">
+                                <button id="btn-reset-code" class="btn-icon" title="Reset Code Template">
+                                    <i class="fa-solid fa-rotate-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="editor-body">
+                            <!-- Custom Editor Layout with Line Numbers -->
+                            <div class="editor-container">
+                                <div class="line-numbers" id="line-numbers">1</div>
+                                <div class="editor-code-area">
+                                    <!-- Syntax-highlighted mirror layer -->
+                                    <pre class="editor-highlight" id="editor-highlight" aria-hidden="true"><code id="editor-highlight-code"></code></pre>
+                                    <!-- Actual editable textarea (transparent text, sits on top) -->
+                                    <textarea id="code-editor" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="# Write your Python code here..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RUN/TEST CONTROLS -->
+                    <div class="action-bar">
+                        <button id="btn-run-code" class="btn-secondary">
+                            <i class="fa-solid fa-play"></i> Run Code
+                        </button>
+                        <button id="btn-submit-solution" class="btn-success">
+                            <i class="fa-solid fa-circle-check"></i> Submit Challenge
+                        </button>
+                    </div>
+
+                    <!-- TERMINAL & VALIDATION PANEL -->
+                    <div class="terminal-window card">
+                        <div class="window-header">
+                            <div class="window-title"><i class="fa-solid fa-terminal"></i> Terminal Output</div>
+                            <div class="window-actions">
+                                <button id="btn-clear-console" class="btn-icon-text" title="Clear Console">
+                                    <i class="fa-solid fa-trash-can"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                        <div class="terminal-body" id="terminal-output">
+                            <div class="terminal-line system-msg">Python Academy Interactive Environment v1.0.0</div>
+                            <div class="terminal-line system-msg">Pyodide virtual environment loaded.</div>
+                            <div class="terminal-line prompt">>>> Ready for coding.</div>
+                        </div>
+                    </div>
+
+                    <!-- RESULTS PANEL -->
+                    <div id="test-results-panel" class="results-panel card" style="display: none;">
+                        <div class="results-header">
+                            <h3><i class="fa-solid fa-list-check"></i> Test Results</h3>
+                            <button id="btn-close-results" class="btn-close">&times;</button>
+                        </div>
+                        <div id="test-results-list" class="results-list">
+                            <!-- Dynamic test runs -->
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Import Curriculum Data and App Engine -->
+    <script src="curriculum.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
