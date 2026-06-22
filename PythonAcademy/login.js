@@ -82,11 +82,21 @@ btnGoogle.addEventListener('click', async () => {
     clearMessages();
     try {
         const provider = new firebase.auth.GoogleAuthProvider();
-        await auth.signInWithPopup(provider);
-        window.location.href = 'index.html';
+        // Use redirect instead of popup to prevent Safari from automatically closing it
+        await auth.signInWithRedirect(provider);
     } catch (error) {
         showError(error.message);
     }
+});
+
+// Check for redirect result on page load (for Google Sign-In)
+auth.getRedirectResult().then((result) => {
+    if (result.credential) {
+        // Successful login
+        window.location.href = 'index.html';
+    }
+}).catch((error) => {
+    showError(error.message);
 });
 
 // Email/Password Submit
