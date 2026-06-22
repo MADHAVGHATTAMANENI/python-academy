@@ -802,76 +802,10 @@ if (typeof firebase !== 'undefined') {
     const userAvatar = document.getElementById('user-avatar');
     const userEmail = document.getElementById('user-email');
     const btnLogout = document.getElementById('btn-logout');
-    
-    const authModal = document.getElementById('auth-modal');
-    const btnCloseAuth = document.getElementById('btn-close-auth');
-    const btnGoogleLogin = document.getElementById('btn-google-login');
-    const btnEmailLogin = document.getElementById('btn-email-login');
-    const btnEmailSignup = document.getElementById('btn-email-signup');
-    const authEmailInput = document.getElementById('auth-email');
-    const authPasswordInput = document.getElementById('auth-password');
-    const authErrorMsg = document.getElementById('auth-error-msg');
 
-    function showAuthError(msg) {
-        if(authErrorMsg) {
-            authErrorMsg.textContent = msg;
-            authErrorMsg.style.display = 'block';
-        }
-    }
-
-    // Modal Toggles
-    if (btnLoginHeader && authModal) {
+    if (btnLoginHeader) {
         btnLoginHeader.addEventListener('click', () => {
-            authModal.style.display = 'flex';
-            if(authErrorMsg) authErrorMsg.style.display = 'none';
-        });
-    }
-    if (btnCloseAuth && authModal) {
-        btnCloseAuth.addEventListener('click', () => {
-            authModal.style.display = 'none';
-        });
-        // Also close if clicking outside the modal content
-        authModal.addEventListener('click', (e) => {
-            if (e.target === authModal) {
-                authModal.style.display = 'none';
-            }
-        });
-    }
-
-    // Google Sign-In
-    if (btnGoogleLogin) {
-        btnGoogleLogin.addEventListener('click', async () => {
-            try {
-                const provider = new firebase.auth.GoogleAuthProvider();
-                await auth.signInWithPopup(provider);
-                if(authModal) authModal.style.display = 'none';
-            } catch (error) {
-                showAuthError(error.message);
-            }
-        });
-    }
-
-    // Email Login
-    if (btnEmailLogin) {
-        btnEmailLogin.addEventListener('click', async () => {
-            try {
-                await auth.signInWithEmailAndPassword(authEmailInput.value, authPasswordInput.value);
-                if(authModal) authModal.style.display = 'none';
-            } catch (error) {
-                showAuthError(error.message);
-            }
-        });
-    }
-
-    // Email Signup
-    if (btnEmailSignup) {
-        btnEmailSignup.addEventListener('click', async () => {
-            try {
-                await auth.createUserWithEmailAndPassword(authEmailInput.value, authPasswordInput.value);
-                if(authModal) authModal.style.display = 'none';
-            } catch (error) {
-                showAuthError(error.message);
-            }
+            window.location.href = 'login.html';
         });
     }
 

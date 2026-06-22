@@ -157,7 +157,7 @@ if (typeof firebase !== 'undefined') {
 if 'firebaseConfig' not in js:
     # Inject it right inside the DOMContentLoaded
     # Find the top of DOMContentLoaded
-    target = 'document.addEventListener("DOMContentLoaded", () => {'
+    target = 'document.addEventListener('DOMContentLoaded', async () => {'
     if target in js:
         js = js.replace(target, target + '\n' + firebase_logic)
 
