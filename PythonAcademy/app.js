@@ -8,6 +8,8 @@ let currentLessonData = null;
 let currentModuleIndex = 0;
 let currentLessonIndex = 0;
 let selectedQuizAnswers = {};
+let isDsaMode = false;
+let currentDsaProblem = null;
 
 // ---- DOM References ----
 const pyodideStatus  = document.getElementById('pyodide-status');
@@ -20,6 +22,13 @@ const testResultsList  = document.getElementById('test-results-list');
 const progressFill     = document.getElementById('progress-fill');
 const progressPercent  = document.getElementById('progress-percent');
 const progressCount    = document.getElementById('progress-completed-count');
+const dsaModal           = document.getElementById('dsa-modal');
+const btnDsaPractice     = document.getElementById('btn-dsa-practice');
+const btnCloseDsaModal   = document.getElementById('btn-close-dsa-modal');
+const dsaProblemsList    = document.getElementById('dsa-problems-list');
+const btnBackToDsaMenu   = document.getElementById('btn-back-to-dsa-menu');
+const dsaFilters         = document.querySelectorAll('.dsa-filters .btn-filter');
+
 
 // ============================================================
 //  PROGRESS PERSISTENCE (localStorage)
@@ -43,7 +52,11 @@ function isLessonComplete(moduleId, lessonId) {
     return !!(progress[moduleId] && progress[moduleId][lessonId]);
 }
 
+const DEV_MODE_UNLOCK_ALL = true; // Set to false for production to enforce sequential learning
+
 function isLessonUnlocked(moduleIdx, lessonIdx) {
+    if (DEV_MODE_UNLOCK_ALL) return true;
+    
     if (moduleIdx === 0 && lessonIdx === 0) return true;
     const progress = getProgress();
     // Check previous lesson completion
@@ -521,6 +534,7 @@ codeEditor.addEventListener('keydown', (e) => {
         codeEditor.value = val.substring(0, start) + '    ' + val.substring(end);
         codeEditor.selectionStart = codeEditor.selectionEnd = start + 4;
         updateLineNumbers();
+        syncHighlight();
         return;
     }
 
@@ -533,13 +547,13 @@ codeEditor.addEventListener('keydown', (e) => {
             codeEditor.value = val.substring(0, start - 1) + val.substring(start + 1);
             codeEditor.selectionStart = codeEditor.selectionEnd = start - 1;
             updateLineNumbers();
+            syncHighlight();
             return;
         }
     }
 
     // ── Jump-over: if user types a closing char that already exists ──
     if (CLOSING_CHARS.has(e.key) && charAfter === e.key && start === end) {
-        // For quote chars only jump over if they were auto-inserted (charBefore is the matching open)
         const isQuote = (e.key === '"' || e.key === "'" || e.key === '`');
         if (!isQuote || val[start - 1] !== e.key) {
             e.preventDefault();
@@ -550,10 +564,8 @@ codeEditor.addEventListener('keydown', (e) => {
 
     // ── Auto-pair: insert open + closing, place cursor between ──
     if (AUTO_PAIRS[e.key]) {
-        // Don't auto-pair if user has text selected (let default replace work)
         if (start !== end) return;
 
-        // For quotes: don't auto-pair if the char after is alphanumeric (avoid disrupting mid-word)
         const isQuote = (e.key === '"' || e.key === "'" || e.key === '`');
         if (isQuote && charAfter && /\w/.test(charAfter)) return;
 
@@ -563,6 +575,7 @@ codeEditor.addEventListener('keydown', (e) => {
         codeEditor.value = val.substring(0, start) + open + close + val.substring(end);
         codeEditor.selectionStart = codeEditor.selectionEnd = start + 1;
         updateLineNumbers();
+        syncHighlight();
     }
 });
 
@@ -643,6 +656,9 @@ async function handleRunCode() {
 
 // Submit challenge handler
 async function handleSubmitChallenge() {
+    if (isDsaMode && currentDsaProblem) {
+        return runDsaTests();
+    }
     if (!currentLessonData) return;
 
     const btn = document.getElementById('btn-submit-solution');
@@ -819,4 +835,213 @@ document.addEventListener('DOMContentLoaded', async () => {
     hintToggle.addEventListener('click', () => {
         hintToggle.closest('.hints-accordion').classList.toggle('open');
     });
+
+    // ==========================================
+    // NEW FEATURE: PYTHON REFERENCE MODAL
+    // ==========================================
+    const modal = document.getElementById('reference-modal');
+    document.getElementById('btn-reference-guide').addEventListener('click', () => {
+        modal.style.display = 'flex';
+    });
+    document.getElementById('btn-close-modal').addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) modal.style.display = 'none';
+    });
+
+    // ==========================================
+    // NEW FEATURE: FREE COMPILER (SANDBOX MODE)
+    // ==========================================
+    let isSandboxMode = false;
+    let savedLessonCode = '';
+
+    const btnSandbox = document.getElementById('btn-sandbox-mode');
+    const mainLayout = document.querySelector('.main-layout');
+    const windowTitle = document.querySelector('.window-title');
+
+    btnSandbox.addEventListener('click', () => {
+        isSandboxMode = !isSandboxMode;
+        
+        if (isSandboxMode) {
+            // Enter Sandbox Mode
+            savedLessonCode = codeEditor.value;
+            mainLayout.classList.add('sandbox-active');
+            btnSandbox.innerHTML = '<i class="fa-solid fa-arrow-left"></i> Return to Lesson';
+            btnSandbox.classList.remove('btn-secondary');
+            btnSandbox.classList.add('btn-primary');
+            windowTitle.innerHTML = '<i class="fa-brands fa-python"></i> sandbox.py';
+            setEditorCode('# Write whatever Python code you want here!\n# There are no tests or limits in Sandbox Mode.\n\n');
+            clearTerminal();
+            appendTerminal('Sandbox Mode Activated. Ready for freeplay.', 'system-msg');
+        } else {
+            // Exit Sandbox Mode
+            mainLayout.classList.remove('sandbox-active');
+            btnSandbox.innerHTML = '<i class="fa-solid fa-code"></i> Free Compiler';
+            btnSandbox.classList.remove('btn-primary');
+            btnSandbox.classList.add('btn-secondary');
+            windowTitle.innerHTML = '<i class="fa-brands fa-python"></i> playground.py';
+            setEditorCode(savedLessonCode);
+            clearTerminal();
+            appendTerminal('Returned to curriculum.', 'system-msg');
+        }
+    });
+
+
+
+
+// ============================================================
+//  DSA PRACTICE ARENA LOGIC
+// ============================================================
+
+function renderDsaProblems(filter = 'all') {
+    dsaProblemsList.innerHTML = '';
+    DSA_PROBLEMS.forEach(p => {
+        if (filter !== 'all' && p.difficulty !== filter) return;
+        
+        const card = document.createElement('div');
+        card.className = 'dsa-problem-card';
+        card.innerHTML = `
+            <div class="dsa-card-header">
+                <h4 class="dsa-card-title">${p.title}</h4>
+                <span class="dsa-tag ${p.difficulty.toLowerCase()}">${p.difficulty}</span>
+            </div>
+            <div class="dsa-topic"><i class="fa-solid fa-tag"></i> ${p.topic}</div>
+        `;
+        card.addEventListener('click', () => {
+            dsaModal.style.display = 'none';
+            enterDsaMode(p);
+        });
+        dsaProblemsList.appendChild(card);
+    });
+}
+
+function enterDsaMode(problem) {
+    isDsaMode = true;
+    currentDsaProblem = problem;
+    isSandboxMode = false;
+    
+    // UI layout shifts
+    document.querySelector('.main-layout').classList.add('dsa-mode-active');
+    document.querySelector('.main-layout').classList.remove('sandbox-active');
+    
+    document.getElementById('dsa-difficulty-tag').textContent = problem.difficulty;
+    document.getElementById('dsa-difficulty-tag').className = `module-tag ${problem.difficulty.toLowerCase()}`;
+    document.getElementById('dsa-topic-tag').textContent = problem.topic;
+    document.getElementById('dsa-title').textContent = problem.title;
+    document.getElementById('dsa-description').innerHTML = problem.description;
+    
+    codeEditor.value = problem.starterCode;
+    updateLineNumbers();
+    
+    testResultsPanel.style.display = 'none';
+    terminalOutput.innerHTML = '';
+}
+
+function exitDsaMode() {
+    isDsaMode = false;
+    currentDsaProblem = null;
+    document.querySelector('.main-layout').classList.remove('dsa-mode-active');
+    
+    // Reload current curriculum lesson into editor
+    if (currentLessonData) {
+        codeEditor.value = currentLessonData.exercise.starterCode;
+        updateLineNumbers();
+        testResultsPanel.style.display = 'none';
+    }
+}
+
+async function runDsaTests() {
+    const btn = document.getElementById('btn-submit-solution');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testing...';
+
+    testResultsPanel.style.display = 'block';
+    testResultsList.innerHTML = '<div class="terminal-line system-msg">Running hidden test suite...</div>';
+
+    const userCode = codeEditor.value;
+    const combined = userCode + '\n\n' + currentDsaProblem.tests;
+
+    const result = await runPythonCode(combined);
+
+    let parsed = null;
+    const allOutput = result.output || '';
+    const marker = '__TEST_RESULT__:';
+    const markerIdx = allOutput.indexOf(marker);
+
+    if (markerIdx !== -1) {
+        try {
+            parsed = JSON.parse(allOutput.substring(markerIdx + marker.length));
+        } catch { parsed = null; }
+    }
+
+    const userOutput = markerIdx !== -1 ? allOutput.substring(0, markerIdx).trim() : allOutput;
+    
+    if (userOutput) {
+        testResultsList.innerHTML += `<div class="terminal-line stdout-msg"><b>Output:</b><br>${userOutput.replace(/\n/g, '<br>')}</div>`;
+    }
+
+    if (result.error) {
+        const tb = result.error.replace(/\n/g, '<br>');
+        testResultsList.innerHTML += `<div class="terminal-line error-msg"><b>Error:</b><br>${tb}</div>`;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-play"></i> Run Tests';
+        return;
+    }
+
+    if (!parsed) {
+        testResultsList.innerHTML += '<div class="terminal-line error-msg">Test suite failed to execute correctly. Check your syntax.</div>';
+    } else {
+        let html = '';
+        parsed.results.forEach(tr => {
+            if (tr.success) {
+                html += `<div class="terminal-line success-msg"><i class="fa-solid fa-check"></i> ${tr.name}</div>`;
+            } else {
+                html += `<div class="terminal-line error-msg"><i class="fa-solid fa-xmark"></i> ${tr.name} — Expected: ${tr.expected}, Got: ${tr.got}</div>`;
+            }
+        });
+        
+        if (parsed.passed) {
+            html += '<div class="terminal-line success-msg" style="margin-top:10px; font-weight:bold;">🎉 All DSA test cases passed! Great job!</div>';
+        } else {
+            html += '<div class="terminal-line error-msg" style="margin-top:10px; font-weight:bold;">❌ Some tests failed. Keep trying!</div>';
+        }
+        testResultsList.innerHTML += html;
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-play"></i> Run Tests';
+}
+
+// DSA Event Listeners
+if (btnDsaPractice) {
+    btnDsaPractice.addEventListener('click', () => {
+        renderDsaProblems();
+        dsaModal.style.display = 'flex';
+    });
+}
+
+if (btnCloseDsaModal) {
+    btnCloseDsaModal.addEventListener('click', () => {
+        dsaModal.style.display = 'none';
+    });
+}
+
+if (btnBackToDsaMenu) {
+    btnBackToDsaMenu.addEventListener('click', () => {
+        exitDsaMode();
+        dsaModal.style.display = 'flex';
+    });
+}
+
+if (dsaFilters) {
+    dsaFilters.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            dsaFilters.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            renderDsaProblems(e.target.dataset.filter);
+        });
+    });
+}
+
 });
