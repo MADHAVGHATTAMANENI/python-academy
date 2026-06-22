@@ -145,7 +145,13 @@ function buildSidebar() {
             li.innerHTML = `<span class="lesson-title-text">${lesson.id}. ${lesson.title}</span>${icon}`;
 
             if (unlocked) {
-                li.addEventListener('click', () => loadLesson(mIdx, lIdx));
+                li.addEventListener('click', () => {
+                    loadLesson(mIdx, lIdx);
+                    if (window.innerWidth <= 1024) {
+                        const sb = document.querySelector('.sidebar');
+                        if (sb) sb.classList.remove('mobile-open');
+                    }
+                });
             }
             ul.appendChild(li);
         });
@@ -837,6 +843,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // ==========================================
+    
+    // ==========================================
+    // MOBILE NAVIGATION
+    // ==========================================
+    const btnMobileMenu = document.getElementById('btn-mobile-menu');
+    const sidebar = document.querySelector('.sidebar');
+    
+    if (btnMobileMenu && sidebar) {
+        btnMobileMenu.addEventListener('click', () => {
+            sidebar.classList.toggle('mobile-open');
+        });
+    }
+
     // NEW FEATURE: PYTHON REFERENCE MODAL
     // ==========================================
     const modal = document.getElementById('reference-modal');
