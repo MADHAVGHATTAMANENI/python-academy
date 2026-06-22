@@ -80,23 +80,15 @@ btnToggleMode.addEventListener('click', () => {
 // Google Sign-In
 btnGoogle.addEventListener('click', () => {
     clearMessages();
-    
-    // Set loading state
-    const originalContent = btnGoogle.innerHTML;
-    btnGoogle.disabled = true;
-    btnGoogle.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Opening Google...';
-    
     const provider = new firebase.auth.GoogleAuthProvider();
     
-    // We MUST use signInWithPopup because Safari blocks cross-domain signInWithRedirect 
-    // due to Intelligent Tracking Prevention (ITP).
     auth.signInWithPopup(provider)
         .then((result) => {
             window.location.href = 'index.html';
         })
         .catch((error) => {
             btnGoogle.disabled = false;
-            btnGoogle.innerHTML = originalContent;
+            btnGoogle.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Sign in with Google';
             
             // Handle common popup errors gracefully
             if (error.code === 'auth/popup-closed-by-user') {
