@@ -830,6 +830,12 @@ if (typeof firebase !== 'undefined') {
         btnCloseAuth.addEventListener('click', () => {
             authModal.style.display = 'none';
         });
+        // Also close if clicking outside the modal content
+        authModal.addEventListener('click', (e) => {
+            if (e.target === authModal) {
+                authModal.style.display = 'none';
+            }
+        });
     }
 
     // Google Sign-In
